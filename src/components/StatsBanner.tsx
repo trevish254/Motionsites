@@ -38,9 +38,36 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({
   ];
 
   return (
-    <div className="border-2 border-[#1A1A1A] bg-[#FAF9F6] p-6 sm:p-10 mb-8 relative overflow-hidden">
-      {/* Decorative vertical line accent */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-8 border-b border-[#1A1A1A]">
+    <div className="border-2 border-[#1A1A1A] bg-[#FAF9F6] p-6 sm:p-10 mb-8 relative overflow-hidden group">
+      {/* Background Hero Video Asset */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute right-0 top-1/2 -translate-y-1/2 w-full md:w-[75%] lg:w-[65%] h-full object-cover object-center opacity-40 sm:opacity-55 mix-blend-multiply select-none"
+        >
+          <source
+            src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260802_081931_d0adfc37-7ace-4c83-939e-4a6e0e9d9763.mp4"
+            type="video/mp4"
+          />
+        </video>
+
+        {/* White / Neutral Gradient Blur Layers to blend with corners & edges */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#FAF9F6] via-[#FAF9F6]/85 sm:via-[#FAF9F6]/60 to-transparent z-[1]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#FAF9F6] via-transparent to-[#FAF9F6] z-[1]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(250,249,246,0.95)_0%,transparent_60%)] z-[1]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(250,249,246,0.95)_0%,transparent_60%)] z-[1]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(250,249,246,0.85)_0%,transparent_50%)] z-[1]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(250,249,246,0.95)_0%,transparent_60%)] z-[1]" />
+        
+        {/* Soft edge blur layer */}
+        <div className="absolute inset-0 backdrop-blur-[0.5px] pointer-events-none z-[1]" />
+      </div>
+
+      {/* Decorative vertical line accent & Main Hero Content */}
+      <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-8 border-b border-[#1A1A1A]">
         {/* Left Headline Section */}
         <div className="space-y-3 max-w-2xl">
           <div className="flex items-center gap-3">
