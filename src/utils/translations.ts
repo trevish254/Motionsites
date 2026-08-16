@@ -6,6 +6,7 @@ export interface TranslationDictionary {
   brandSubtitle: string;
   volLabel: string;
   tabGallery: string;
+  tabCms: string;
   tabAnalysis: string;
   tabAnalysisBadge: string;
   tabRemixer: string;
@@ -187,9 +188,10 @@ export const translations: Record<Language, TranslationDictionary> = {
     brandTitle: 'MotionSites.',
     brandSubtitle: 'Curated Artistic Interaction Prompts',
     volLabel: 'Vol. 04',
-    tabGallery: 'Gallery',
+    tabGallery: 'Explore',
+    tabCms: 'Media CMS',
     tabAnalysis: 'Design Secrets',
-    tabAnalysisBadge: 'Deconstructed',
+    tabAnalysisBadge: '',
     tabRemixer: 'Remixer',
     tabSaved: 'Saved',
     exportBtn: 'Export',
@@ -380,6 +382,7 @@ export const translations: Record<Language, TranslationDictionary> = {
     brandSubtitle: '艺术动效交互提示词典藏库',
     volLabel: 'Vol. 04',
     tabGallery: '提示词图库',
+    tabCms: '媒体 CMS',
     tabAnalysis: '设计密码解构',
     tabAnalysisBadge: '深度研究',
     tabRemixer: '提示词重混器',

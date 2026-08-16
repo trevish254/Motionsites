@@ -1,3 +1,15 @@
+export interface PromptMedia {
+  promptId: string;
+  mediaUrl: string;
+  mediaType: 'image' | 'video' | 'gif';
+  aspectRatio?: string;
+  caption?: string;
+  uploadedBy?: string;
+  userId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface MotionPrompt {
   id: string;
   title: string;
@@ -12,13 +24,15 @@ export interface MotionPrompt {
   extractedFonts?: string[];
   extractedAssets?: string[];
   extractedTags?: string[];
+  // Attached CMS media
+  media?: PromptMedia;
 }
 
 export type PlatformFilter = 'all' | 'website' | 'app';
 export type TierFilter = 'all' | 'free' | 'premium';
 export type SortOption = 'default' | 'title-asc' | 'title-desc' | 'length-desc' | 'length-asc';
 export type ViewMode = 'grid' | 'compact';
-export type ActiveTab = 'gallery' | 'analysis' | 'remixer' | 'favorites';
+export type ActiveTab = 'gallery' | 'cms' | 'analysis' | 'remixer' | 'favorites';
 
 export interface FilterState {
   searchQuery: string;

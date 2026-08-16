@@ -1,5 +1,5 @@
 import React from 'react';
-import { Copy, Check, Heart, Smartphone, Globe, Code2, ArrowUpRight } from 'lucide-react';
+import { Copy, Check, Heart, Smartphone, Globe, Code2, ArrowUpRight, Film, Image as ImageIcon } from 'lucide-react';
 import { MotionPrompt } from '../types';
 import confetti from 'canvas-confetti';
 import { Language, translations } from '../utils/translations';
@@ -63,6 +63,8 @@ export const PromptCard: React.FC<PromptCardProps> = ({
     ? prompt.prompt_text.slice(0, 160).replace(/^[#\*\-]+\s*/gm, '') + '...'
     : 'No prompt text available';
 
+  const hasMedia = !!prompt.media?.mediaUrl;
+
   return (
     <div
       onClick={() => onOpenModal(prompt)}
@@ -120,6 +122,42 @@ export const PromptCard: React.FC<PromptCardProps> = ({
             <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-white' : ''}`} />
           </button>
         </div>
+
+        {/* Attached Visual Media Banner if present */}
+        {hasMedia && prompt.media && (
+          <div className="relative aspect-video mb-3.5 bg-[#1A1A1A] border-2 border-[#1A1A1A] overflow-hidden group-hover:border-[#FF3E00] transition-colors">
+            {prompt.media.mediaType === 'video' ? (
+              <video
+                src={prompt.media.mediaUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <img
+                src={prompt.media.mediaUrl}
+                alt={prompt.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                referrerPolicy="no-referrer"
+              />
+            )}
+            <div className="absolute top-2 left-2 px-2 py-0.5 bg-[#1A1A1A]/90 backdrop-blur-xs text-white text-[9px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 border border-white/20">
+              {prompt.media.mediaType === 'video' ? (
+                <Film className="w-2.5 h-2.5 text-[#FF3E00]" />
+              ) : (
+                <ImageIcon className="w-2.5 h-2.5 text-[#FF3E00]" />
+              )}
+              <span>{prompt.media.mediaType}</span>
+            </div>
+            {prompt.media.caption && (
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-[10px] text-white/90 truncate font-mono">
+                {prompt.media.caption}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Title */}
         <h3 className="text-xl font-serif italic font-bold text-[#1A1A1A] group-hover:text-[#FF3E00] transition-colors leading-tight line-clamp-1 mb-2">

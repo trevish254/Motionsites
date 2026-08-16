@@ -195,6 +195,41 @@ export const PromptModal: React.FC<PromptModalProps> = ({
           </p>
         </div>
 
+        {/* Attached Visual Media Preview Banner (if exists) */}
+        {prompt.media?.mediaUrl && (
+          <div className="px-6 pt-4 pb-0 bg-[#FAF9F6]">
+            <div className="relative aspect-video max-h-72 w-full bg-[#1A1A1A] border-2 border-[#1A1A1A] overflow-hidden flex items-center justify-center shadow-[4px_4px_0px_#1A1A1A]">
+              {prompt.media.mediaType === 'video' ? (
+                <video
+                  src={prompt.media.mediaUrl}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  controls
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <img
+                  src={prompt.media.mediaUrl}
+                  alt={prompt.title}
+                  className="w-full h-full object-contain"
+                  referrerPolicy="no-referrer"
+                />
+              )}
+              <div className="absolute top-3 left-3 px-2.5 py-1 bg-[#1A1A1A]/90 backdrop-blur-xs text-white text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 border border-white/20">
+                <Sparkles className="w-3 h-3 text-[#FF3E00]" />
+                <span>Motion Preview ({prompt.media.mediaType})</span>
+              </div>
+              {prompt.media.caption && (
+                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 text-xs text-white font-mono">
+                  {prompt.media.caption}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Modal Navigation Sub-tabs */}
         <div className="flex items-center gap-1 px-6 py-2 bg-white border-b border-[#1A1A1A] overflow-x-auto">
           <button

@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { MotionPrompt, FilterState, ViewMode, ActiveTab } from './types';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { MotionPrompt, FilterState, ViewMode, ActiveTab, PromptMedia } from './types';
 import { ALL_PROMPTS } from './data/promptsData';
 import { Navbar } from './components/Navbar';
 import { StatsBanner } from './components/StatsBanner';
@@ -9,15 +9,26 @@ import { CompactListView } from './components/CompactListView';
 import { PromptModal } from './components/PromptModal';
 import { LuxuryAnalysis } from './components/LuxuryAnalysis';
 import { PromptRemixer } from './components/PromptRemixer';
+import { MediaCMS } from './components/MediaCMS';
 import { QuickSearchModal } from './components/QuickSearchModal';
+import { PlayfulAIAssistant } from './components/PlayfulAIAssistant';
 import { Toast } from './components/Toast';
 import { exportAsJSON, exportAsMarkdown, exportAsCSV } from './utils/promptUtils';
 import { Language, translations } from './utils/translations';
 import { Heart, AlertCircle, Sparkles } from 'lucide-react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import {
+  subscribeUserFavorites,
+  toggleFavoriteFirestore,
+  subscribeCustomPrompts,
+  subscribeAllPromptMedia
+} from './services/firebaseService';
 
-export default function App() {
+function MotionsitesApp() {
+  const { user } = useAuth();
   // Directly initialize all 328 pre-compiled prompts
-  const [prompts] = useState<MotionPrompt[]>(ALL_PROMPTS);
+  const [basePrompts] = useState<MotionPrompt[]>(ALL_PROMPTS);
+  const [customPrompts, setCustomPrompts] = useState<MotionPrompt[]>([]);
   const [activeTab, setActiveTab] = useState<ActiveTab>('gallery');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [modalPrompt, setModalPrompt] = useState<MotionPrompt | null>(null);
@@ -25,6 +36,76 @@ export default function App() {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [pageSize, setPageSize] = useState(48);
   const [isQuickSearchOpen, setIsQuickSearchOpen] = useState(false);
+
+  // Global Media Map for all prompts (cached in localStorage + synced with Firestore)
+  const [mediaMap, setMediaMap] = useState<Record<string, PromptMedia>>(() => {
+    try {
+      const saved = localStorage.getItem('motionsites_media_map');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Subscribe to real-time prompt media from Firestore
+  useEffect(() => {
+    const unsubMedia = subscribeAllPromptMedia((latestMap) => {
+      setMediaMap((prev) => {
+        const merged = { ...prev, ...latestMap };
+        try {
+          localStorage.setItem('motionsites_media_map', JSON.stringify(merged));
+        } catch (e) {
+          console.error('Failed to cache media map:', e);
+        }
+        return merged;
+      });
+    });
+
+    return () => {
+      if (unsubMedia) unsubMedia();
+    };
+  }, []);
+
+  // Handler when media is updated or removed in CMS
+  const handleMediaUpdated = useCallback((promptId: string, media: PromptMedia | null) => {
+    setMediaMap((prev) => {
+      const next = { ...prev };
+      if (media) {
+        next[promptId] = media;
+      } else {
+        delete next[promptId];
+      }
+      try {
+        localStorage.setItem('motionsites_media_map', JSON.stringify(next));
+      } catch (e) {
+        console.error(e);
+      }
+      return next;
+    });
+
+    // Update active modal prompt if currently inspecting
+    setModalPrompt((curr) => {
+      if (curr && curr.id === promptId) {
+        return {
+          ...curr,
+          media: media || undefined,
+        };
+      }
+      return curr;
+    });
+  }, []);
+
+  // Combine base prompts with custom Firestore prompts AND attach active visual media
+  const prompts = useMemo(() => {
+    const all = [...customPrompts, ...basePrompts];
+    return all.map((p) => {
+      const attachedMedia = mediaMap[p.id];
+      if (attachedMedia) {
+        return { ...p, media: attachedMedia };
+      }
+      return p;
+    });
+  }, [customPrompts, basePrompts, mediaMap]);
 
   // Language state (default to English as requested by user to translate Chinese text, with 1-click toggle)
   const [lang, setLang] = useState<Language>(() => {
@@ -51,7 +132,7 @@ export default function App() {
     });
   };
 
-  // Favorites in localStorage
+  // Favorites in localStorage + Firebase sync
   const [favorites, setFavorites] = useState<Set<string>>(() => {
     try {
       const saved = localStorage.getItem('motionsites_favorites');
@@ -60,6 +141,34 @@ export default function App() {
       return new Set();
     }
   });
+
+  // Real-time sync with Firebase when user is authenticated
+  useEffect(() => {
+    if (!user) return;
+
+    // Listen to Firebase favorites
+    const unsubFavs = subscribeUserFavorites(user.uid, (firestoreFavIds) => {
+      setFavorites((prev) => {
+        const combined = new Set([...Array.from(prev), ...firestoreFavIds]);
+        try {
+          localStorage.setItem('motionsites_favorites', JSON.stringify(Array.from(combined)));
+        } catch (e) {
+          console.error(e);
+        }
+        return combined;
+      });
+    });
+
+    // Listen to Firebase custom prompts
+    const unsubCustom = subscribeCustomPrompts(user.uid, (savedCustoms) => {
+      setCustomPrompts(savedCustoms);
+    });
+
+    return () => {
+      if (unsubFavs) unsubFavs();
+      if (unsubCustom) unsubCustom();
+    };
+  }, [user]);
 
   const [filters, setFilters] = useState<FilterState>({
     searchQuery: '',
@@ -72,6 +181,13 @@ export default function App() {
     onlyFavorites: false,
   });
 
+  // AI Assistant active filter to sync recommendations directly with the main gallery
+  const [aiGalleryFilter, setAiGalleryFilter] = useState<{
+    label: string;
+    promptIds: string[];
+    queryText: string;
+  } | null>(null);
+
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => {
@@ -82,16 +198,25 @@ export default function App() {
   const toggleFavorite = (id: string) => {
     setFavorites((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
+      const willBeFavorite = !next.has(id);
+      if (willBeFavorite) {
         next.add(id);
+      } else {
+        next.delete(id);
       }
       try {
         localStorage.setItem('motionsites_favorites', JSON.stringify(Array.from(next)));
       } catch (e) {
         console.error(e);
       }
+
+      // Sync to Firebase if user is logged in
+      if (user) {
+        toggleFavoriteFirestore(user.uid, id, willBeFavorite).catch((err) =>
+          console.warn('Could not sync favorite to Firestore:', err)
+        );
+      }
+
       return next;
     });
   };
@@ -149,6 +274,13 @@ export default function App() {
   // Filter and sort prompts
   const filteredPrompts = useMemo(() => {
     return prompts.filter((p) => {
+      // AI Assistant active recommendations filter
+      if (aiGalleryFilter && Array.isArray(aiGalleryFilter.promptIds) && aiGalleryFilter.promptIds.length > 0) {
+        if (!aiGalleryFilter.promptIds.includes(p.id)) {
+          return false;
+        }
+      }
+
       // Favorites filter
       if ((filters.onlyFavorites || activeTab === 'favorites') && !favorites.has(p.id)) {
         return false;
@@ -318,6 +450,38 @@ export default function App() {
               </div>
             )}
 
+            {/* AI Assistant Active Filter Banner */}
+            {aiGalleryFilter && (
+              <div className="border-2 border-[#1A1A1A] bg-[#FAF9F6] p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-[4px_4px_0px_#FF3E00] animate-in fade-in">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 border-2 border-[#1A1A1A] bg-[#FF3E00] text-white">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#FF3E00] flex items-center gap-1.5">
+                      <span>✦ GEMINI AI FILTER ACTIVE</span>
+                      <span className="text-[#1A1A1A]/40">•</span>
+                      <span className="text-[#1A1A1A]/70">{filteredPrompts.length} PROMPTS FOUND</span>
+                    </div>
+                    <h2 className="text-base sm:text-lg font-serif italic font-bold text-[#1A1A1A]">
+                      {aiGalleryFilter.label}
+                    </h2>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setAiGalleryFilter(null);
+                    showToast('Cleared AI gallery filter');
+                  }}
+                  className="px-3 py-1.5 border-2 border-[#1A1A1A] bg-white hover:bg-[#1A1A1A] hover:text-white text-xs font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  ✕ Clear AI Filter
+                </button>
+              </div>
+            )}
+
+            <div id="gallery-content-anchor" />
+
             {/* Filter and Search Bar */}
             <FilterBar
               filters={filters}
@@ -410,7 +574,19 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 2: LUXURY DESIGN ANALYSIS (设计密码) */}
+        {/* VIEW 2: MEDIA CMS (Image & Video Uploader) */}
+        {activeTab === 'cms' && (
+          <MediaCMS
+            prompts={prompts}
+            mediaMap={mediaMap}
+            onMediaUpdated={handleMediaUpdated}
+            onToast={showToast}
+            lang={lang}
+            onOpenPromptDetail={handleOpenModal}
+          />
+        )}
+
+        {/* VIEW 3: LUXURY DESIGN ANALYSIS (设计密码) */}
         {activeTab === 'analysis' && (
           <LuxuryAnalysis
             onToast={showToast}
@@ -459,6 +635,33 @@ export default function App() {
       {/* Toast Notifications */}
       <Toast message={toastMsg} />
 
+      {/* Playful Interactive AI Assistant (Draggable + Eye Tracking + Blinking + Gemini AI) */}
+      <PlayfulAIAssistant
+        prompts={prompts}
+        onSelectPrompt={handleOpenModal}
+        onSwitchTab={(tab) => {
+          setActiveTab(tab);
+          if (tab === 'favorites') {
+            setFilters((prev) => ({ ...prev, onlyFavorites: true }));
+          }
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onOpenRemixWithPrompt={handleOpenRemix}
+        onApplyAIGalleryFilter={(filter) => {
+          setAiGalleryFilter(filter);
+          setActiveTab('gallery');
+          setFilters((prev) => ({ ...prev, searchQuery: '' }));
+          setTimeout(() => {
+            const anchor = document.getElementById('gallery-content-anchor');
+            if (anchor) {
+              anchor.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, 100);
+        }}
+        onToast={showToast}
+        lang={lang}
+      />
+
       {/* Footer */}
       <footer className="mt-auto border-t-2 border-[#1A1A1A] bg-[#FAF9F6] py-8 text-center text-xs text-[#1A1A1A]">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -473,5 +676,13 @@ export default function App() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <MotionsitesApp />
+    </AuthProvider>
   );
 }

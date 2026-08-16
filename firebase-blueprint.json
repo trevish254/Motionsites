@@ -1,0 +1,202 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Public profile and metadata for an authenticated user",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name",
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "maxLength": 150
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "User avatar image URL",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when profile was created"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when profile was last updated"
+        }
+      },
+      "required": ["userId", "createdAt"]
+    },
+    "UserFavorite": {
+      "title": "UserFavorite",
+      "description": "A bookmarked motion prompt for an authenticated user",
+      "type": "object",
+      "properties": {
+        "promptId": {
+          "type": "string",
+          "description": "ID of the favorited prompt",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of the owner",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when favorited"
+        }
+      },
+      "required": ["promptId", "userId", "createdAt"]
+    },
+    "CustomPrompt": {
+      "title": "CustomPrompt",
+      "description": "A user-created or remixed motion design prompt",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique prompt ID",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Author UID",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the custom prompt",
+          "maxLength": 200
+        },
+        "category": {
+          "type": "string",
+          "description": "Category name",
+          "maxLength": 100
+        },
+        "type": {
+          "type": "string",
+          "description": "Prompt animation type",
+          "maxLength": 100
+        },
+        "page_type": {
+          "type": "string",
+          "description": "Target page layout type",
+          "maxLength": 100
+        },
+        "platform": {
+          "type": "string",
+          "description": "Target platform (website, mobile, etc.)",
+          "maxLength": 50
+        },
+        "description": {
+          "type": "string",
+          "description": "Brief description of the motion effect",
+          "maxLength": 2000
+        },
+        "prompt_text": {
+          "type": "string",
+          "description": "Complete motion prompt specification or code template",
+          "maxLength": 100000
+        },
+        "is_free": {
+          "type": "boolean",
+          "description": "Whether prompt is freely usable"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp created"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp updated"
+        }
+      },
+      "required": ["id", "userId", "title", "prompt_text", "createdAt", "updatedAt"]
+    },
+    "PromptMedia": {
+      "title": "PromptMedia",
+      "description": "Uploaded media (image, gif, video) associated with a motion prompt for site-wide display",
+      "type": "object",
+      "properties": {
+        "promptId": {
+          "type": "string",
+          "description": "ID of the target prompt",
+          "maxLength": 128
+        },
+        "mediaUrl": {
+          "type": "string",
+          "description": "Direct image/video URL or base64 data URI",
+          "maxLength": 1000000
+        },
+        "mediaType": {
+          "type": "string",
+          "enum": ["image", "video", "gif"],
+          "description": "Media format type"
+        },
+        "aspectRatio": {
+          "type": "string",
+          "description": "Preferred display aspect ratio (e.g. 16:9, 4:3, 1:1, 9:16, auto)",
+          "maxLength": 20
+        },
+        "caption": {
+          "type": "string",
+          "description": "Optional title or visual description",
+          "maxLength": 500
+        },
+        "uploadedBy": {
+          "type": "string",
+          "description": "Display name of uploader",
+          "maxLength": 100
+        },
+        "userId": {
+          "type": "string",
+          "description": "User ID of uploader",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when media was uploaded"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when media was last updated"
+        }
+      },
+      "required": ["promptId", "mediaUrl", "mediaType", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile document"
+    },
+    "/users/{userId}/favorites/{promptId}": {
+      "schema": { "$ref": "#/entities/UserFavorite" },
+      "description": "User bookmarked prompt record"
+    },
+    "/users/{userId}/custom_prompts/{customPromptId}": {
+      "schema": { "$ref": "#/entities/CustomPrompt" },
+      "description": "User created custom or remixed prompts"
+    },
+    "/prompt_media/{promptId}": {
+      "schema": { "$ref": "#/entities/PromptMedia" },
+      "description": "Public attached media for a motion prompt (images, gifs, videos)"
+    }
+  }
+}

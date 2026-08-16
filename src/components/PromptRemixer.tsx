@@ -10,11 +10,15 @@ import {
   Type,
   Code2,
   Terminal,
+  CloudUpload,
+  LogIn
 } from 'lucide-react';
 import { MotionPrompt } from '../types';
 import { remixPrompt, formatForAIStudio } from '../utils/promptUtils';
 import confetti from 'canvas-confetti';
 import { Language, translations } from '../utils/translations';
+import { useAuth } from '../context/AuthContext';
+import { saveCustomPromptFirestore } from '../services/firebaseService';
 
 interface PromptRemixerProps {
   prompts: MotionPrompt[];
@@ -29,6 +33,7 @@ export const PromptRemixer: React.FC<PromptRemixerProps> = ({
   onToast,
   lang = 'en',
 }) => {
+  const { user, signInWithGoogle } = useAuth();
   const defaultBasePrompt = initialPrompt || prompts[0] || null;
   const t = translations[lang];
 
@@ -42,6 +47,7 @@ export const PromptRemixer: React.FC<PromptRemixerProps> = ({
   const [fontPairing, setFontPairing] = useState('Instrument Sans + Playfair Display (Serif Accent)');
   const [includeAIWrapper, setIncludeAIWrapper] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [isSavingCloud, setIsSavingCloud] = useState(false);
 
   const currentBasePrompt =
     prompts.find((p) => p.id === selectedPromptId) || defaultBasePrompt;
@@ -124,6 +130,48 @@ export const PromptRemixer: React.FC<PromptRemixerProps> = ({
     setFontPairing('Instrument Sans + Playfair Display (Serif Accent)');
     setIncludeAIWrapper(true);
     onToast(lang === 'zh' ? '已重置为默认值' : 'Reset to default parameters');
+  };
+
+  const handleSaveToCloud = async () => {
+    if (!user) {
+      onToast('Please sign in with Google first to save to cloud');
+      try {
+        await signInWithGoogle();
+      } catch (e) {
+        console.error(e);
+      }
+      return;
+    }
+
+    if (!currentBasePrompt) return;
+
+    setIsSavingCloud(true);
+    try {
+      const customId = `custom_${Date.now()}`;
+      const customPrompt: MotionPrompt = {
+        id: customId,
+        title: `${brandName || currentBasePrompt.title} (Remix)`,
+        category: currentBasePrompt.category || 'Custom Remixes',
+        type: currentBasePrompt.type || 'Custom Interaction',
+        is_free: true,
+        page_type: currentBasePrompt.page_type || 'hero',
+        platform: currentBasePrompt.platform || 'website',
+        description: `Customized remix of ${currentBasePrompt.title} tailored for ${brandName} in ${industry}.`,
+        prompt_text: remixedResult,
+        extractedTags: ['remix', 'custom', colorTheme, framework.split(' ')[0].toLowerCase()],
+        extractedFonts: [fontPairing.split('+')[0].trim()],
+        extractedAssets: [],
+      };
+
+      await saveCustomPromptFirestore(user.uid, customPrompt);
+      confetti({ particleCount: 60, spread: 60, origin: { y: 0.7 } });
+      onToast('✓ Saved Remix to Firebase Cloud!');
+    } catch (err: any) {
+      console.error(err);
+      onToast('Failed to save to Firebase');
+    } finally {
+      setIsSavingCloud(false);
+    }
   };
 
   return (
@@ -331,27 +379,40 @@ export const PromptRemixer: React.FC<PromptRemixerProps> = ({
                   </h3>
                 </div>
 
-                <button
-                  id="btn-copy-remix"
-                  onClick={handleCopy}
-                  className={`flex items-center gap-1.5 px-4 py-2 border-2 border-[#1A1A1A] text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                    copied
-                      ? 'bg-[#FF3E00] border-[#FF3E00] text-white'
-                      : 'bg-[#1A1A1A] hover:bg-[#FF3E00] hover:border-[#FF3E00] text-white'
-                  }`}
-                >
-                  {copied ? (
-                    <>
-                      <Check className="w-3.5 h-3.5" />
-                      <span>{t.copiedBtn}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>{t.copyRemixedBtn}</span>
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    id="btn-cloud-save-remix"
+                    onClick={handleSaveToCloud}
+                    disabled={isSavingCloud}
+                    className="flex items-center gap-1.5 px-3 py-2 border-2 border-[#1A1A1A] bg-white hover:bg-emerald-50 text-xs font-bold uppercase tracking-wider text-[#1A1A1A] transition-all cursor-pointer shadow-[2px_2px_0px_#1A1A1A] disabled:opacity-50"
+                    title="Save this remixed prompt to your Firebase Cloud collection"
+                  >
+                    <CloudUpload className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{isSavingCloud ? 'Saving...' : 'Save to Cloud'}</span>
+                  </button>
+
+                  <button
+                    id="btn-copy-remix"
+                    onClick={handleCopy}
+                    className={`flex items-center gap-1.5 px-4 py-2 border-2 border-[#1A1A1A] text-xs font-bold uppercase tracking-wider transition-all cursor-pointer shadow-[2px_2px_0px_#1A1A1A] ${
+                      copied
+                        ? 'bg-[#FF3E00] border-[#FF3E00] text-white'
+                        : 'bg-[#1A1A1A] hover:bg-[#FF3E00] hover:border-[#FF3E00] text-white'
+                    }`}
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>{t.copiedBtn}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>{t.copyRemixedBtn}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
               <p className="text-xs text-[#1A1A1A]/70 mb-3 leading-relaxed font-medium">

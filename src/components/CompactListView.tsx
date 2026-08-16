@@ -84,11 +84,29 @@ export const CompactListView: React.FC<CompactListViewProps> = ({
 
                   {/* Title & Description */}
                   <td className="py-3 px-4 border-r border-[#1A1A1A]/10">
-                    <div className="font-serif italic font-bold text-base text-[#1A1A1A] group-hover:text-[#FF3E00] transition-colors leading-tight">
-                      {p.title}
-                    </div>
-                    <div className="text-[#1A1A1A]/60 text-[11px] line-clamp-1 mt-0.5 max-w-md font-medium">
-                      {p.description || 'Curated high-fidelity interaction prompt'}
+                    <div className="flex items-center gap-2">
+                      {p.media?.mediaUrl && (
+                        <div className="w-8 h-8 rounded-xs border border-[#1A1A1A] bg-[#1A1A1A] overflow-hidden shrink-0">
+                          {p.media.mediaType === 'video' ? (
+                            <video src={p.media.mediaUrl} className="w-full h-full object-cover" muted />
+                          ) : (
+                            <img
+                              src={p.media.mediaUrl}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          )}
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-serif italic font-bold text-base text-[#1A1A1A] group-hover:text-[#FF3E00] transition-colors leading-tight">
+                          {p.title}
+                        </div>
+                        <div className="text-[#1A1A1A]/60 text-[11px] line-clamp-1 mt-0.5 max-w-md font-medium">
+                          {p.description || 'Curated high-fidelity interaction prompt'}
+                        </div>
+                      </div>
                     </div>
                   </td>
 
