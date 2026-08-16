@@ -123,9 +123,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <span className="font-serif italic text-base sm:text-2xl font-bold tracking-tight text-[#1A1A1A] leading-none">
                     Motion<span className="text-[#FF3E00]">Sites.</span>
                   </span>
-                  <span className="text-[8px] sm:text-[10px] px-1 sm:px-1.5 py-0.2 border border-[#1A1A1A] bg-[#1A1A1A] text-white font-mono font-bold uppercase tracking-wider">
-                    {totalCount}
-                  </span>
                 </div>
                 <p className="text-[9px] sm:text-[11px] text-[#1A1A1A]/60 font-mono tracking-tight uppercase hidden lg:block mt-0.5">
                   {t.brandSubtitle}

@@ -13,6 +13,19 @@ import { MediaCMS } from './components/MediaCMS';
 import { QuickSearchModal } from './components/QuickSearchModal';
 import { PlayfulAIAssistant } from './components/PlayfulAIAssistant';
 import { Toast } from './components/Toast';
+import {
+  PromptCardSkeletonGrid,
+  CompactListViewSkeleton,
+  InteractiveMotionLoader,
+} from './components/Skeletons';
+import {
+  PaginationControls,
+  PaginationMode,
+} from './components/PaginationControls';
+import {
+  InteractiveScrollSentinel,
+  FloatingScrollTopButton,
+} from './components/InteractiveScrollSentinel';
 import { exportAsJSON, exportAsMarkdown, exportAsCSV } from './utils/promptUtils';
 import { Language, translations } from './utils/translations';
 import { Heart, AlertCircle, Sparkles } from 'lucide-react';
@@ -34,7 +47,26 @@ function MotionsitesApp() {
   const [modalPrompt, setModalPrompt] = useState<MotionPrompt | null>(null);
   const [remixPrompt, setRemixPrompt] = useState<MotionPrompt | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
-  const [pageSize, setPageSize] = useState(48);
+  const [pageSize, setPageSize] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('motionsites_pagesize');
+      return saved ? Number(saved) : 24;
+    } catch {
+      return 24;
+    }
+  });
+  const [paginationMode, setPaginationMode] = useState<PaginationMode>(() => {
+    try {
+      const saved = localStorage.getItem('motionsites_pagination_mode');
+      return saved === 'paged' || saved === 'infinite' ? (saved as PaginationMode) : 'infinite';
+    } catch {
+      return 'infinite';
+    }
+  });
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [infiniteLoadedCount, setInfiniteLoadedCount] = useState<number>(24);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const [isFilterLoading, setIsFilterLoading] = useState<boolean>(false);
   const [isQuickSearchOpen, setIsQuickSearchOpen] = useState(false);
 
   // Global Media Map for all prompts (cached in localStorage + synced with Firestore)
@@ -333,6 +365,82 @@ function MotionsitesApp() {
     });
   }, [prompts, filters, favorites, activeTab]);
 
+  // Reset pagination position and trigger brief skeleton pulse when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+    setInfiniteLoadedCount(pageSize);
+    setIsFilterLoading(true);
+    const timer = setTimeout(() => {
+      setIsFilterLoading(false);
+    }, 180);
+    return () => clearTimeout(timer);
+  }, [filters, aiGalleryFilter, activeTab, pageSize]);
+
+  // Total pages calculation
+  const totalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(filteredPrompts.length / pageSize));
+  }, [filteredPrompts.length, pageSize]);
+
+  // Clamp current page if totalPages changes
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  // Displayed prompts slice based on active mode
+  const displayedPrompts = useMemo(() => {
+    if (paginationMode === 'paged') {
+      const startIndex = (currentPage - 1) * pageSize;
+      return filteredPrompts.slice(startIndex, startIndex + pageSize);
+    } else {
+      return filteredPrompts.slice(0, infiniteLoadedCount);
+    }
+  }, [filteredPrompts, paginationMode, currentPage, pageSize, infiniteLoadedCount]);
+
+  const hasMoreInfinite = infiniteLoadedCount < filteredPrompts.length;
+
+  const handleLoadMoreInfinite = useCallback(() => {
+    if (isLoadingMore || infiniteLoadedCount >= filteredPrompts.length) return;
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      setInfiniteLoadedCount((prev) => Math.min(filteredPrompts.length, prev + pageSize));
+      setIsLoadingMore(false);
+    }, 320);
+  }, [isLoadingMore, infiniteLoadedCount, filteredPrompts.length, pageSize]);
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    setIsFilterLoading(true);
+    setTimeout(() => setIsFilterLoading(false), 160);
+    const anchor = document.getElementById('gallery-content-anchor');
+    if (anchor) {
+      anchor.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setInfiniteLoadedCount(newSize);
+    setCurrentPage(1);
+    try {
+      localStorage.setItem('motionsites_pagesize', String(newSize));
+    } catch (e) {
+      console.error(e);
+    }
+    showToast(`Items per page set to ${newSize}`);
+  };
+
+  const handleModeChange = (mode: PaginationMode) => {
+    setPaginationMode(mode);
+    try {
+      localStorage.setItem('motionsites_pagination_mode', mode);
+    } catch (e) {
+      console.error(e);
+    }
+    showToast(mode === 'infinite' ? '⚡ Infinite Scroll enabled' : '📄 Page navigation enabled');
+  };
+
   // Modal navigation helpers
   const handleOpenModal = (p: MotionPrompt) => {
     setModalPrompt(p);
@@ -379,10 +487,6 @@ function MotionsitesApp() {
     else if (type === 'csv') exportAsCSV(listToExport);
     showToast(`Exported ${listToExport.length} prompts as .${type}`);
   };
-
-  const displayedPrompts = useMemo(() => {
-    return filteredPrompts.slice(0, pageSize);
-  }, [filteredPrompts, pageSize]);
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#1A1A1A] flex flex-col selection:bg-[#FF3E00] selection:text-white font-sans">
@@ -497,8 +601,29 @@ function MotionsitesApp() {
               onOpenQuickSearch={() => setIsQuickSearchOpen(true)}
             />
 
-            {/* Prompts Display */}
-            {filteredPrompts.length === 0 ? (
+            {/* Top Pagination Controls (when in Paged Mode for quick access) */}
+            {paginationMode === 'paged' && filteredPrompts.length > pageSize && (
+              <PaginationControls
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredPrompts.length}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+                paginationMode={paginationMode}
+                onModeChange={handleModeChange}
+                lang={lang}
+              />
+            )}
+
+            {/* Prompts Display & Skeleton Loading */}
+            {isFilterLoading ? (
+              viewMode === 'grid' ? (
+                <PromptCardSkeletonGrid count={Math.min(pageSize, 12)} />
+              ) : (
+                <CompactListViewSkeleton rows={Math.min(pageSize, 12)} />
+              )
+            ) : filteredPrompts.length === 0 ? (
               <div className="border-2 border-[#1A1A1A] bg-white p-12 text-center space-y-4 my-8 shadow-[4px_4px_0px_#1A1A1A]">
                 <div className="w-12 h-12 mx-auto border-2 border-[#1A1A1A] bg-[#FAF9F6] flex items-center justify-center text-[#FF3E00]">
                   <AlertCircle className="w-6 h-6" />
@@ -554,22 +679,40 @@ function MotionsitesApp() {
               />
             )}
 
-            {/* Pagination / Load More Controls */}
-            {filteredPrompts.length > pageSize && (
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 py-10">
-                <button
-                  onClick={() => setPageSize((prev) => prev + 48)}
-                  className="px-6 py-3 border-2 border-[#1A1A1A] bg-[#1A1A1A] hover:bg-[#FF3E00] hover:border-[#FF3E00] text-xs sm:text-sm font-mono font-bold uppercase tracking-wider text-white transition-all shadow-[4px_4px_0px_#1A1A1A] cursor-pointer"
-                >
-                  {t.loadMoreBtn} ({filteredPrompts.length - pageSize} {t.remainingCount})
-                </button>
-                <button
-                  onClick={() => setPageSize(filteredPrompts.length)}
-                  className="px-6 py-3 border-2 border-[#1A1A1A] bg-white hover:bg-[#1A1A1A] hover:text-white text-xs sm:text-sm font-mono font-bold uppercase tracking-wider text-[#1A1A1A] transition-all shadow-[4px_4px_0px_#1A1A1A] cursor-pointer"
-                >
-                  {t.showAllBtn} ({filteredPrompts.length})
-                </button>
-              </div>
+            {/* Bottom Controls based on Active Pagination Mode */}
+            {paginationMode === 'paged' ? (
+              filteredPrompts.length > 0 && (
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={filteredPrompts.length}
+                  pageSize={pageSize}
+                  onPageChange={handlePageChange}
+                  onPageSizeChange={handlePageSizeChange}
+                  paginationMode={paginationMode}
+                  onModeChange={handleModeChange}
+                  lang={lang}
+                />
+              )
+            ) : (
+              filteredPrompts.length > 0 && (
+                <InteractiveScrollSentinel
+                  hasMore={hasMoreInfinite}
+                  isLoadingMore={isLoadingMore}
+                  onLoadMore={handleLoadMoreInfinite}
+                  loadedCount={displayedPrompts.length}
+                  totalCount={filteredPrompts.length}
+                  viewMode={viewMode}
+                  onScrollToTop={() => {
+                    const anchor = document.getElementById('gallery-content-anchor');
+                    if (anchor) {
+                      anchor.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                  }}
+                />
+              )
             )}
           </div>
         )}
@@ -661,6 +804,9 @@ function MotionsitesApp() {
         onToast={showToast}
         lang={lang}
       />
+
+      {/* Floating Back to Top Button with Circular Scroll Meter */}
+      <FloatingScrollTopButton />
 
       {/* Footer */}
       <footer className="mt-auto border-t-2 border-[#1A1A1A] bg-[#FAF9F6] py-8 text-center text-xs text-[#1A1A1A]">

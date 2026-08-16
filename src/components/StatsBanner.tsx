@@ -120,19 +120,22 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({
       </div>
 
       {/* Quick Category Jump Chips */}
-      <div className="flex items-center gap-2 flex-wrap pt-5">
-        <span className="text-[10px] text-[#1A1A1A] font-bold uppercase tracking-widest flex items-center gap-1.5 mr-2">
-          <Flame className="w-3.5 h-3.5 text-[#FF3E00]" />
-          {t.hotCategories}
+      <div className="relative z-10 flex items-center gap-2.5 flex-wrap pt-5">
+        <span className="text-xs text-[#1A1A1A] font-bold uppercase tracking-widest flex items-center gap-1.5 mr-2 font-mono">
+          <Flame className="w-4 h-4 text-[#FF3E00]" />
+          {t.hotCategories}:
         </span>
         {topCategories.map((cat) => (
           <button
             key={cat.name}
+            id={`btn-category-${cat.name.toLowerCase().replace(/\s+/g, '-')}`}
             onClick={() => onSelectCategory(cat.name)}
-            className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 border border-[#1A1A1A] bg-white text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_#1A1A1A]"
+            className="text-xs font-bold uppercase tracking-wider px-3.5 py-1.5 border-2 border-[#1A1A1A] bg-white text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-white transition-all flex items-center gap-2 cursor-pointer shadow-[2px_2px_0px_#1A1A1A] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5"
           >
-            <span>{cat.name}</span>
-            <span className="font-mono text-[9px] opacity-60">({cat.count})</span>
+            <span className="font-semibold text-[#1A1A1A] group-hover:text-white">{cat.name}</span>
+            <span className="font-mono text-[10px] px-1.5 py-0.5 border border-[#1A1A1A]/30 bg-[#FAF9F6] text-[#1A1A1A] rounded-xs">
+              {cat.count}
+            </span>
           </button>
         ))}
       </div>
