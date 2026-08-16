@@ -1,0 +1,6 @@
+{
+  "name": "MotionSites Prompts Gallery",
+  "description": "Interactive gallery, search, customizer, and design analysis for 328 MotionSites UI & motion prompts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

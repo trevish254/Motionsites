@@ -1,0 +1,114 @@
+import React from 'react';
+import { Shuffle, Flame, ArrowUpRight } from 'lucide-react';
+import { Language, translations } from '../utils/translations';
+
+interface StatsBannerProps {
+  total: number;
+  freeCount: number;
+  premiumCount: number;
+  websiteCount: number;
+  appCount: number;
+  favoritesCount: number;
+  onRandomPrompt: () => void;
+  onSelectCategory: (category: string) => void;
+  lang: Language;
+}
+
+export const StatsBanner: React.FC<StatsBannerProps> = ({
+  total,
+  freeCount,
+  premiumCount,
+  websiteCount,
+  appCount,
+  favoritesCount,
+  onRandomPrompt,
+  onSelectCategory,
+  lang,
+}) => {
+  const t = translations[lang];
+
+  const topCategories = [
+    { name: 'Landing Page', count: 60 },
+    { name: 'Hero', count: 57 },
+    { name: 'SaaS', count: 28 },
+    { name: 'Agency', count: 9 },
+    { name: 'Features', count: 8 },
+    { name: 'Pricing', count: 6 },
+    { name: 'Portfolio', count: 5 },
+  ];
+
+  return (
+    <div className="border-2 border-[#1A1A1A] bg-[#FAF9F6] p-6 sm:p-10 mb-8 relative overflow-hidden">
+      {/* Decorative vertical line accent */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-8 border-b border-[#1A1A1A]">
+        {/* Left Headline Section */}
+        <div className="space-y-3 max-w-2xl">
+          <div className="flex items-center gap-3">
+            <span className="w-2.5 h-2.5 bg-[#FF3E00] rounded-full inline-block"></span>
+            <span className="text-[10px] uppercase tracking-[0.4em] font-black opacity-60 font-mono">
+              {t.bannerSource}
+            </span>
+          </div>
+          <h1 className="text-5xl sm:text-7xl lg:text-8xl font-serif italic font-light tracking-tighter leading-[0.95] text-[#1A1A1A]">
+            Motion<br className="hidden sm:inline" />Sites.
+          </h1>
+          <p className="text-xs sm:text-sm text-[#1A1A1A]/80 font-medium max-w-xl leading-relaxed pt-2">
+            {t.bannerDesc}
+          </p>
+        </div>
+
+        {/* Right Action and Stats Snapshot */}
+        <div className="flex flex-col items-start lg:items-end gap-5">
+          <div className="grid grid-cols-3 gap-4 border-l lg:border-l-0 lg:border-r border-[#1A1A1A] pl-4 lg:pl-0 lg:pr-4">
+            <div>
+              <span className="block text-[9px] uppercase font-mono font-bold opacity-50">
+                {t.statTotal}
+              </span>
+              <span className="text-xl sm:text-2xl font-mono font-bold text-[#1A1A1A]">{total}</span>
+            </div>
+            <div>
+              <span className="block text-[9px] uppercase font-mono font-bold opacity-50">
+                {t.statWebVsApp}
+              </span>
+              <span className="text-xl sm:text-2xl font-mono font-bold text-[#1A1A1A]">{websiteCount}/{appCount}</span>
+            </div>
+            <div>
+              <span className="block text-[9px] uppercase font-mono font-bold opacity-50">
+                {t.statFreeTier}
+              </span>
+              <span className="text-xl sm:text-2xl font-mono font-bold text-[#FF3E00]">{freeCount}</span>
+            </div>
+          </div>
+
+          <button
+            id="btn-random-prompt"
+            onClick={onRandomPrompt}
+            className="flex items-center justify-center gap-2 px-5 py-3 border-2 border-[#1A1A1A] bg-[#1A1A1A] text-white hover:bg-[#FF3E00] hover:border-[#FF3E00] text-xs sm:text-sm font-bold uppercase tracking-wider transition-colors shadow-[4px_4px_0px_#1A1A1A] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 cursor-pointer"
+          >
+            <Shuffle className="w-4 h-4" />
+            <span>{t.inspireMeBtn}</span>
+            <ArrowUpRight className="w-4 h-4 ml-1" />
+          </button>
+        </div>
+      </div>
+
+      {/* Quick Category Jump Chips */}
+      <div className="flex items-center gap-2 flex-wrap pt-5">
+        <span className="text-[10px] text-[#1A1A1A] font-bold uppercase tracking-widest flex items-center gap-1.5 mr-2">
+          <Flame className="w-3.5 h-3.5 text-[#FF3E00]" />
+          {t.hotCategories}
+        </span>
+        {topCategories.map((cat) => (
+          <button
+            key={cat.name}
+            onClick={() => onSelectCategory(cat.name)}
+            className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 border border-[#1A1A1A] bg-white text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_#1A1A1A]"
+          >
+            <span>{cat.name}</span>
+            <span className="font-mono text-[9px] opacity-60">({cat.count})</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
