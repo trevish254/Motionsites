@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { MotionPrompt, FilterState, ViewMode, ActiveTab } from './types';
-import { ALL_INITIAL_PROMPTS, fetchAllPrompts } from './data/promptsData';
+import { ALL_PROMPTS } from './data/promptsData';
 import { Navbar } from './components/Navbar';
 import { StatsBanner } from './components/StatsBanner';
 import { FilterBar } from './components/FilterBar';
@@ -16,8 +16,8 @@ import { Language, translations } from './utils/translations';
 import { Heart, AlertCircle, Sparkles } from 'lucide-react';
 
 export default function App() {
-  // Initialize with initial prompts and load complete archive on mount
-  const [prompts, setPrompts] = useState<MotionPrompt[]>(ALL_INITIAL_PROMPTS);
+  // Directly initialize all 328 pre-compiled prompts
+  const [prompts] = useState<MotionPrompt[]>(ALL_PROMPTS);
   const [activeTab, setActiveTab] = useState<ActiveTab>('gallery');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [modalPrompt, setModalPrompt] = useState<MotionPrompt | null>(null);
@@ -25,19 +25,6 @@ export default function App() {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [pageSize, setPageSize] = useState(48);
   const [isQuickSearchOpen, setIsQuickSearchOpen] = useState(false);
-
-  // Load all 328 prompts from static asset
-  useEffect(() => {
-    let isMounted = true;
-    fetchAllPrompts().then((allData) => {
-      if (isMounted && allData && allData.length > 0) {
-        setPrompts(allData);
-      }
-    });
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   // Language state (default to English as requested by user to translate Chinese text, with 1-click toggle)
   const [lang, setLang] = useState<Language>(() => {

@@ -1,6 +1,15 @@
 import { MotionPrompt } from '../types';
-import { INITIAL_PROMPTS } from './initialPrompts';
 import { extractTags, extractFonts, extractAssets } from '../utils/promptUtils';
+import { CHUNK_1 } from './chunks/chunk1';
+import { CHUNK_2 } from './chunks/chunk2';
+import { CHUNK_3 } from './chunks/chunk3';
+import { CHUNK_4 } from './chunks/chunk4';
+import { CHUNK_5 } from './chunks/chunk5';
+import { CHUNK_6 } from './chunks/chunk6';
+import { CHUNK_7 } from './chunks/chunk7';
+import { CHUNK_8 } from './chunks/chunk8';
+import { CHUNK_9 } from './chunks/chunk9';
+import { CHUNK_10 } from './chunks/chunk10';
 
 export function enrichPrompt(p: MotionPrompt): MotionPrompt {
   return {
@@ -11,28 +20,18 @@ export function enrichPrompt(p: MotionPrompt): MotionPrompt {
   };
 }
 
-export const ALL_INITIAL_PROMPTS: MotionPrompt[] = INITIAL_PROMPTS.map(enrichPrompt);
+const RAW_ALL_PROMPTS: MotionPrompt[] = [
+  ...CHUNK_1,
+  ...CHUNK_2,
+  ...CHUNK_3,
+  ...CHUNK_4,
+  ...CHUNK_5,
+  ...CHUNK_6,
+  ...CHUNK_7,
+  ...CHUNK_8,
+  ...CHUNK_9,
+  ...CHUNK_10,
+];
 
-let cachedPrompts: MotionPrompt[] | null = null;
-
-export async function fetchAllPrompts(): Promise<MotionPrompt[]> {
-  if (cachedPrompts && cachedPrompts.length > 20) {
-    return cachedPrompts;
-  }
-
-  try {
-    const res = await fetch('/prompts.json');
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
-    }
-    const rawData: MotionPrompt[] = await res.json();
-    if (Array.isArray(rawData) && rawData.length > 0) {
-      cachedPrompts = rawData.map(enrichPrompt);
-      return cachedPrompts;
-    }
-  } catch (err) {
-    console.warn('Failed to load /prompts.json, using initial dataset fallback', err);
-  }
-
-  return ALL_INITIAL_PROMPTS;
-}
+// Pre-enriched in-memory array containing all 328 prompts
+export const ALL_PROMPTS: MotionPrompt[] = RAW_ALL_PROMPTS.map(enrichPrompt);
