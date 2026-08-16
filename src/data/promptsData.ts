@@ -1,8 +1,8 @@
 import { MotionPrompt } from '../types';
-import rawPromptsData from './allPrompts.json';
+import { RAW_PROMPTS } from './promptsRaw';
 import { extractTags, extractFonts, extractAssets } from '../utils/promptUtils';
 
-export const ALL_PROMPTS: MotionPrompt[] = (rawPromptsData as MotionPrompt[]).map((p) => ({
+export const ALL_PROMPTS: MotionPrompt[] = RAW_PROMPTS.map((p) => ({
   ...p,
   extractedTags: extractTags(p),
   extractedFonts: extractFonts(p.prompt_text || ''),
